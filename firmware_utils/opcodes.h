@@ -1,0 +1,43 @@
+#ifndef OPCODES_H
+#define OPCODES_H
+
+/*
+   Op codes
+*/
+#define OC_NOOP 0x0
+
+#define OC_NFC_RCV 0x1
+
+#define OC_VLV1_OPEN 0x10
+#define OC_VLV1_CLOSE 0x11
+#define OC_VLV2_OPEN 0x12
+#define OC_VLV2_CLOSE 0x13
+#define OC_VLV3_OPEN 0x14
+#define OC_VLV3_CLOSE 0x15
+#define OC_VLV4_OPEN 0x16
+#define OC_VLV4_CLOSE 0x17
+
+#define OC_FLOW_MEAS 0x30
+#define OC_FLOW_READ 0x31
+#define OC_FLOW_STOP 0x32
+#define OC_FLOW_RST 0x33
+
+#define OC_SCALES_CALIB 0x40
+#define OC_SCALES_READ 0x41
+#define OC_SCALES_TARE0 0x42
+#define OC_SCALES_TARE1 0x43
+#define OC_SCALES_TARE2 0x44
+#define OC_SCALES_TARE3 0x45
+#define OC_SCALES_RESET0 0x46
+#define OC_SCALES_RESET1 0x47
+#define OC_SCALES_RESET2 0x48
+#define OC_SCALES_RESET3 0x49
+
+#define OC_THERM_READ1 0x50
+#define OC_THERM_READ2 0x51
+#define OC_THERM_READ3 0x52
+#define OC_THERM_READ4 0x53
+#define OC_THERM_READ5 0x54
+#define OC_THERM_READ6 0x55
+
+#endif
