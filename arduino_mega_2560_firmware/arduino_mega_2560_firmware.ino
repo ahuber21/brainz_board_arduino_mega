@@ -127,24 +127,25 @@ HX711_ADC scale4_adc4(Sc4_DT4, Sc4_SCK4);
 /*
    Thermistor
 */
+// the value of the 'other' resistor
+
 #define TEMP1 A0
 #define TEMP2 A1
 #define TEMP3 A2
 #define TEMP4 A3
 #define TEMP5 A4
 #define TEMP6 A5
-
-struct t {
-  long int one_resistance = 100000; // nominal resistance at 25 degrees ("one" value), Ohms
-  int b_value = 4250;                   // b-value, we have 4250 Kelvin
-  double kelvin = 273.15;
-  double tn = 273.15 + 25;              // nominal temperature of "one" value, degrees C
-  int bits;                             // measurement
-  float resistance;                     // measured resistance
-  float tkelvin;                        // measured temperature in kelvin
-  float tcelcius;                       // measured temperature in celcius
-} tempsense;
-
+// number of samples which are averaged
+#define TEMP_NUMSAMPLES 5
+// The beta coefficient of the thermistor
+#define BCOEFFICIENT 4250
+// resistance at 25 degrees C
+#define THERMISTORNOMINAL 100000
+// temp. for nominal resistance (almost always 25 C)
+#define TEMPERATURENOMINAL 25
+// the value of the 'other' resistor
+#define SERIESRESISTOR 100000 // 100 kOhm  
+int temp_samples[TEMP_NUMSAMPLES];
 
 
 // scale calibration info
@@ -439,8 +440,12 @@ void request() {
   if (message.ready) {
     Wire.write(message.text[message.idx++]);
     if (message.idx == message.len) {
-      Wire.write(0);
       message.ready = false;
+      Wire.write(0);
+      Serial.print(message.text);
+      Serial.print(F(" ["));
+      Serial.print(message.len);
+      Serial.println(F(" bytes]"));
     }
   } else {
     Wire.write(0);
@@ -624,7 +629,6 @@ void nfc_read() {
     msg_put("0");
   }
   message.ready = true;
-  Serial.println(message.text);
 }
 
 void temperature_read(byte id) {
@@ -632,69 +636,55 @@ void temperature_read(byte id) {
 
   int pin = -1;
   switch (id) {
-    case 0:
+    case 1:
       pin = TEMP1;
       break;
-    case 1:
+    case 2:
       pin = TEMP2;
       break;
-    case 2:
+    case 3:
       pin = TEMP3;
       break;
-    case 3:
+    case 4:
       pin = TEMP4;
       break;
-    case 4:
+    case 5:
       pin = TEMP5;
       break;
-    case 5:
+    case 6:
       pin = TEMP6;
       break;
   }
-  tempsense.bits = analogRead(pin);
-  tempsense.resistance =
-    tempsense.one_resistance *
-    (
-      (
-        (float) tempsense.bits / 1024
-      )
-      /
-      (
-        1.0 - (
-          (float) tempsense.bits / 1024
-        )
-      )
-    );
-  tempsense.tkelvin = 
-    1.0 
-    / 
-    (
-      ( 
-        1.0 / tempsense.tn
-      ) 
-      +
-      (
-        1.0/tempsense.b_value
-      ) 
-      * 
-      log(
-        (float) tempsense.resistance / tempsense.one_resistance
-      )
-    );
 
-    tempsense.tcelcius = tempsense.tkelvin - tempsense.kelvin;
-    Serial.print(F("TEMP:PIN: "));
-    Serial.print(pin);
-    Serial.print(F(", RAW: "));
-    Serial.print(tempsense.bits);
-    Serial.print(F(", OHMS: "));
-    Serial.print(tempsense.resistance);
-    Serial.print(F(", KELVIN: "));
-    Serial.print(tempsense.tkelvin);
-    Serial.print(F(", CELCIUS: "));
-    Serial.println(tempsense.tcelcius);
-  
-    msg_put("TEMP="); 
-    msg_put(tempsense.tcelcius);
-    message.ready = true;
+  uint8_t i;
+  float average;
+
+  // take N samples in a row, with a slight delay
+  for (i = 0; i < TEMP_NUMSAMPLES; i++) {
+    temp_samples[i] = analogRead(pin);
+    delay(10);
+  }
+
+  // average all the samples out
+  average = 0;
+  for (i = 0; i < TEMP_NUMSAMPLES; i++) {
+    average += temp_samples[i];
+  }
+  average /= TEMP_NUMSAMPLES;
+
+  // convert the value to resistance
+  average = 1023 / average - 1;
+  average = SERIESRESISTOR * average;
+
+  float steinhart;
+  steinhart = average / THERMISTORNOMINAL;     // (R/Ro)
+  steinhart = log(steinhart);                  // ln(R/Ro)
+  steinhart /= BCOEFFICIENT;                   // 1/B * ln(R/Ro)
+  steinhart += 1.0 / (TEMPERATURENOMINAL + 273.15); // + (1/To)
+  steinhart = 1.0 / steinhart;                 // Invert
+  steinhart -= 273.15;                         // convert to C
+
+  msg_put("TEMP=");
+  msg_put(steinhart);
+  message.ready = true;
 }

@@ -7,6 +7,7 @@
 #define OC_NOOP 0x0
 
 #define OC_NFC_RCV 0x1
+#define OC_PI_READY 0x2
 
 #define OC_VLV1_OPEN 0x10
 #define OC_VLV1_CLOSE 0x11
@@ -39,5 +40,10 @@
 #define OC_THERM_READ4 0x53
 #define OC_THERM_READ5 0x54
 #define OC_THERM_READ6 0x55
+
+#define OC_DISPLAY_IDLE 0x60
+#define OC_DISPLAY_SHOW 0x61
+#define OC_DISPLAY_OFF 0x62
+#define OC_DISPLAY_ON 0x63
 
 #endif
